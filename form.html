@@ -8,10 +8,34 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Soft Glam (Warm neutrals, soft pinks) -->
+    <!-- Application Structure Plan: A multi-step form with a top stepper to guide the user through booking. Steps: 1. Contact, 2. Event Details, 3. Service Selection, 4. Preferences, 5. Summary & Submit. This structure breaks down the form into logical, manageable parts. The key interaction is the dynamic service selection with real-time total cost calculation, providing transparency and a modern e-commerce feel, which is more user-friendly than a static, long form. -->
+    <!-- Visualization & Content Choices: Report Info: List of makeup services with prices. -> Goal: Allow users to select services and see the total cost dynamically. -> Presentation Method: Interactive cards for each service with checkboxes and +/- quantity controls. A running total is displayed on the side/bottom. -> Interaction: User selections instantly update the total cost. The final step provides a clear summary of all choices and the final price. -> Justification: This interactive approach provides immediate feedback, enhances clarity on pricing, and feels more engaging than a simple checklist. -> Library/Method: Vanilla JavaScript for DOM manipulation and calculations. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
     <style>
         body {
             font-family: 'Quicksand', sans-serif;
             background-color: #FFF8F5;
+        }
+        .step-active {
+            border-color: #E1A095 !important;
+            color: #E1A095 !important;
+            font-weight: 700;
+        }
+        .step-active .step-circle {
+            background-color: #E1A095;
+            color: white;
+        }
+        .step-inactive {
+            color: #A0A0A0;
+        }
+        .step-circle {
+            background-color: #F0F0F0;
+            color: #A0A0A0;
+        }
+        .form-input {
+            transition: all 0.3s ease;
+            border-color: #E0E0E0;
         }
         .form-input:focus {
             border-color: #E1A095;
@@ -25,261 +49,466 @@
         .btn-primary:hover {
             background-color: #C37B6F;
         }
-        /* Style for Google Places Autocomplete dropdown */
-        .pac-container {
-            font-family: 'Quicksand', sans-serif;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            z-index: 1050; /* Ensure it appears above other elements */
+        .btn-primary:disabled {
+            background-color: #E1A095;
+            cursor: not-allowed;
         }
-        .pac-item {
-            padding: 10px;
-            font-size: 14px;
-            cursor: pointer;
+        .btn-secondary {
+            background-color: #F0F0F0;
+            color: #555;
+            transition: background-color 0.3s ease;
         }
-        .pac-item:hover {
-            background-color: #FFF8F5;
+        .btn-secondary:hover {
+            background-color: #E0E0E0;
         }
-        .pac-item-query {
-            font-weight: 600;
+        .service-card {
+            transition: all 0.3s ease;
+            border: 2px solid #F0F0F0;
+        }
+        .service-card.selected {
+            border-color: #E1A095;
+            box-shadow: 0 4px 12px rgba(225, 160, 149, 0.15);
+            background-color: #FFFBF9;
+        }
+        .quantity-btn {
+            background-color: #FCE8E5;
+            color: #D48C7F;
+        }
+        input[type="checkbox"]:checked {
+            background-color: #D48C7F;
+            border-color: #D48C7F;
         }
     </style>
 </head>
 <body class="min-h-screen flex items-center justify-center p-4">
-    <div class="w-full max-w-2xl bg-white rounded-2xl shadow-xl p-6 md:p-10 mx-auto">
+    <div class="w-full max-w-4xl bg-white rounded-2xl shadow-xl p-6 md:p-10 mx-auto">
         <header class="text-center mb-8">
             <h1 class="text-3xl md:text-4xl font-bold text-gray-800">Đặt Lịch Makeup</h1>
-            <p class="text-gray-500 mt-2">Vui lòng điền thông tin bên dưới để mình chuẩn bị thật chu đáo nhé.</p>
+            <p class="text-gray-500 mt-2">Chào bạn! Vui lòng điền thông tin bên dưới để mình chuẩn bị thật chu đáo nhé.</p>
         </header>
 
-        <main id="main-content">
-            <!-- The form will submit data via JavaScript, so the action/method attributes are not strictly needed -->
-            <form id="booking-form">
-                <!-- Hidden input to store user's Page-Scoped ID -->
-                <input type="hidden" id="psid" name="psid">
+        <div id="stepper" class="flex flex-col md:flex-row items-center justify-between mb-8">
+            <div id="step-1" class="step-active flex items-center p-2 border-b-2 md:border-b-0 md:border-t-2 border-transparent w-full">
+                <div class="step-circle w-8 h-8 rounded-full flex items-center justify-center font-bold mr-3">1</div>
+                <span>Thông tin</span>
+            </div>
+            <div class="flex-1 w-full h-px md:h-auto md:w-full bg-gray-200 hidden md:block"></div>
+            <div id="step-2" class="step-inactive flex items-center p-2 border-b-2 md:border-b-0 md:border-t-2 border-transparent w-full">
+                <div class="step-circle w-8 h-8 rounded-full flex items-center justify-center font-bold mr-3">2</div>
+                <span>Dịch vụ</span>
+            </div>
+             <div class="flex-1 w-full h-px md:h-auto md:w-full bg-gray-200 hidden md:block"></div>
+            <div id="step-3" class="step-inactive flex items-center p-2 border-b-2 md:border-b-0 md:border-t-2 border-transparent w-full">
+                <div class="step-circle w-8 h-8 rounded-full flex items-center justify-center font-bold mr-3">3</div>
+                <span>Yêu cầu</span>
+            </div>
+             <div class="flex-1 w-full h-px md:h-auto md:w-full bg-gray-200 hidden md:block"></div>
+            <div id="step-4" class="step-inactive flex items-center p-2 border-b-2 md:border-b-0 md:border-t-2 border-transparent w-full">
+                <div class="step-circle w-8 h-8 rounded-full flex items-center justify-center font-bold mr-3">4</div>
+                <span>Xác nhận</span>
+            </div>
+        </div>
 
-                <div class="space-y-6">
-                    <div>
-                        <label for="name" class="block text-sm font-medium text-gray-600 mb-1">Tên của bạn là *</label>
-                        <input type="text" id="name" name="name" class="form-input w-full px-4 py-2 rounded-lg border" required>
-                    </div>
-                    <div>
-                        <label for="phone" class="block text-sm font-medium text-gray-600 mb-1">Số điện thoại (Zalo) *</label>
-                        <input type="tel" id="phone" name="phone" class="form-input w-full px-4 py-2 rounded-lg border" required>
-                    </div>
-                    <div>
-                        <label for="address" class="block text-sm font-medium text-gray-600 mb-1">Địa chỉ makeup *</label>
-                        <input type="text" id="address" name="address" class="form-input w-full px-4 py-2 rounded-lg border" placeholder="Bắt đầu nhập để được gợi ý..." required>
-                    </div>
+        <main>
+            <form id="booking-form">
+                <div id="form-step-1" class="form-step">
+                    <h2 class="text-2xl font-semibold mb-6 text-gray-700">1. Thông tin liên lạc của bạn</h2>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                         <div>
+                        <div>
+                            <label for="name" class="block text-sm font-medium text-gray-600 mb-1">Tên của bạn là *</label>
+                            <input type="text" id="name" name="hoTen" class="form-input w-full px-4 py-2 rounded-lg border" required>
+                        </div>
+                        <div>
+                            <label for="phone" class="block text-sm font-medium text-gray-600 mb-1">Số điện thoại (Zalo) *</label>
+                            <input type="tel" id="phone" name="soDienThoai" class="form-input w-full px-4 py-2 rounded-lg border" required>
+                        </div>
+                        <div>
+                            <label for="social" class="block text-sm font-medium text-gray-600 mb-1">Facebook / Instagram</label>
+                            <input type="text" id="social" name="socialMedia" class="form-input w-full px-4 py-2 rounded-lg border">
+                        </div>
+                        <div>
+                            <label for="email" class="block text-sm font-medium text-gray-600 mb-1">Email</label>
+                            <input type="email" id="email" name="email" class="form-input w-full px-4 py-2 rounded-lg border">
+                        </div>
+                        <div>
                             <label for="event_date" class="block text-sm font-medium text-gray-600 mb-1">Ngày diễn ra sự kiện *</label>
-                            <input type="date" id="event_date" name="event_date" class="form-input w-full px-4 py-2 rounded-lg border" required>
+                            <input type="date" id="event_date" name="ngaySuKien" class="form-input w-full px-4 py-2 rounded-lg border" required>
                         </div>
                         <div>
                             <label for="event_time" class="block text-sm font-medium text-gray-600 mb-1">Thời gian cần makeup xong *</label>
-                            <input type="time" id="event_time" name="event_time" class="form-input w-full px-4 py-2 rounded-lg border" required>
+                            <input type="time" id="event_time" name="thoiGianXong" class="form-input w-full px-4 py-2 rounded-lg border" required>
+                        </div>
+                         <div class="md:col-span-2">
+                            <label for="address" class="block text-sm font-medium text-gray-600 mb-1">Địa chỉ makeup *</label>
+                            <input type="text" id="address" name="diaChi" class="form-input w-full px-4 py-2 rounded-lg border" placeholder="Số nhà, đường, phường/xã, quận/huyện..." required>
                         </div>
                     </div>
-                    <div>
-                         <label class="block text-sm font-medium text-gray-600 mb-2">Lựa chọn dịch vụ *</label>
-                         <div class="space-y-2" id="service-list">
-                             <!-- Services will be dynamically inserted here -->
-                         </div>
+                </div>
+
+                <div id="form-step-2" class="form-step hidden">
+                    <h2 class="text-2xl font-semibold mb-2 text-gray-700">2. Lựa chọn dịch vụ</h2>
+                     <p class="text-gray-500 mb-6">Chọn các dịch vụ bạn cần. Chi phí sẽ được tự động cập nhật.</p>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4" id="service-list">
                     </div>
-                    <div class="mt-4 bg-pink-50 p-4 rounded-lg flex items-center justify-between">
-                         <span class="text-md font-semibold text-gray-700">Tạm tính:</span>
-                         <span id="total-price" class="text-xl font-bold text-pink-600">0 VND</span>
+                    <div class="mt-8 bg-pink-50 p-6 rounded-lg flex items-center justify-between">
+                         <span class="text-lg font-semibold text-gray-700">Tạm tính:</span>
+                         <span id="total-price" class="text-2xl font-bold text-pink-600">0 VND</span>
                     </div>
-                     <div>
-                        <label for="style" class="block text-sm font-medium text-gray-600 mb-1">Phong cách makeup bạn mong muốn?</label>
-                        <input type="text" id="style" name="style" class="form-input w-full px-4 py-2 rounded-lg border" placeholder="VD: Tự nhiên kiểu Hàn, sắc sảo kiểu Tây...">
-                     </div>
-                      <div>
-                         <p class="block text-sm font-medium text-gray-600 mb-2">Tình trạng da của bạn?</p>
-                         <div class="flex flex-wrap gap-x-4 gap-y-2">
-                            <label class="flex items-center space-x-2"><input type="radio" name="skin_type" value="Da khô"><span>Da khô</span></label>
-                            <label class="flex items-center space-x-2"><input type="radio" name="skin_type" value="Da dầu / Hỗn hợp"><span>Da dầu / Hỗn hợp</span></label>
-                            <label class="flex items-center space-x-2"><input type="radio" name="skin_type" value="Da thường"><span>Da thường</span></label>
-                            <label class="flex items-center space-x-2"><input type="radio" name="skin_type" value="Da nhạy cảm"><span>Da nhạy cảm</span></label>
+                </div>
+                
+                <div id="form-step-3" class="form-step hidden">
+                    <h2 class="text-2xl font-semibold mb-6 text-gray-700">3. Yêu cầu chi tiết</h2>
+                     <div class="space-y-6">
+                         <div>
+                            <label for="style" class="block text-sm font-medium text-gray-600 mb-1">Phong cách makeup bạn mong muốn?</label>
+                            <input type="text" id="style" name="phongCach" class="form-input w-full px-4 py-2 rounded-lg border" placeholder="VD: Tự nhiên kiểu Hàn, sắc sảo kiểu Tây...">
                          </div>
-                     </div>
-                     <div>
-                        <label for="notes" class="block text-sm font-medium text-gray-600 mb-1">Dặn dò thêm cho mình</label>
-                        <textarea id="notes" name="notes" rows="3" class="form-input w-full px-4 py-2 rounded-lg border"></textarea>
+                         <div>
+                             <p class="block text-sm font-medium text-gray-600 mb-2">Tình trạng da của bạn?</p>
+                             <div class="flex flex-wrap gap-4">
+                                <label class="flex items-center space-x-2"><input type="radio" name="tinhTrangDa" value="Da khô" class="form-radio"><span>Da khô</span></label>
+                                <label class="flex items-center space-x-2"><input type="radio" name="tinhTrangDa" value="Da dầu / Hỗn hợp" class="form-radio"><span>Da dầu / Hỗn hợp</span></label>
+                                <label class="flex items-center space-x-2"><input type="radio" name="tinhTrangDa" value="Da thường" class="form-radio"><span>Da thường</span></label>
+                                <label class="flex items-center space-x-2"><input type="radio" name="tinhTrangDa" value="Da nhạy cảm" class="form-radio"><span>Da nhạy cảm</span></label>
+                                <label class="flex items-center space-x-2"><input type="radio" name="tinhTrangDa" value="Da mụn/khuyết điểm" class="form-radio"><span>Da mụn/khuyết điểm</span></label>
+                             </div>
+                         </div>
+                         <div>
+                            <label for="allergies" class="block text-sm font-medium text-gray-600 mb-1">Bạn có dị ứng với thành phần mỹ phẩm nào không?</label>
+                            <textarea id="allergies" name="diUng" rows="2" class="form-input w-full px-4 py-2 rounded-lg border"></textarea>
+                         </div>
+                         <div>
+                            <label for="notes" class="block text-sm font-medium text-gray-600 mb-1">Dặn dò thêm cho mình</label>
+                            <textarea id="notes" name="ghiChu" rows="3" class="form-input w-full px-4 py-2 rounded-lg border"></textarea>
+                         </div>
                      </div>
                 </div>
 
-                <div class="mt-8">
-                    <button type="submit" id="submit-btn" class="w-full btn-primary text-white font-bold py-3 px-6 rounded-lg">
-                        Gửi Đăng Ký
-                    </button>
+                <div id="form-step-4" class="form-step hidden">
+                    <h2 class="text-2xl font-semibold mb-6 text-gray-700">4. Xem lại và xác nhận</h2>
+                    <div id="summary" class="bg-gray-50 p-6 rounded-lg space-y-4">
+                        <p class="text-center text-gray-600">Vui lòng kiểm tra lại thông tin trước khi gửi nhé!</p>
+                    </div>
+                    <div class="mt-6">
+                        <h3 class="font-semibold text-gray-700 mb-2">Điều khoản dịch vụ</h3>
+                        <ul class="list-disc list-inside text-sm text-gray-600 space-y-1">
+                            <li>Để chốt lịch chính thức, bạn vui lòng đặt cọc trước <strong>50%</strong> tổng giá trị dịch vụ.</li>
+                            <li>Nếu có thay đổi, bạn vui lòng báo trước ít nhất <strong>48 giờ</strong>.</li>
+                            <li>Mình sẽ liên hệ lại trong vòng 24 giờ để xác nhận và tư vấn chi tiết hơn.</li>
+                        </ul>
+                    </div>
+                     <div class="mt-6">
+                        <label class="flex items-center">
+                            <input type="checkbox" id="terms" name="terms" class="h-4 w-4 rounded border-gray-300 text-pink-600 focus:ring-pink-500" required>
+                            <span class="ml-2 text-sm text-gray-600">Tôi đã đọc và đồng ý với các điều khoản trên. *</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Các trường ẩn để gửi dữ liệu dịch vụ và tổng tiền -->
+                <input type="hidden" name="dichVuChon" id="dichVuChon">
+                <input type="hidden" name="tongChiPhi" id="tongChiPhi">
+
+                <div class="mt-8 flex justify-between">
+                    <button type="button" id="prev-btn" class="btn-secondary font-bold py-2 px-6 rounded-lg hidden">Quay lại</button>
+                    <button type="button" id="next-btn" class="btn-primary text-white font-bold py-2 px-6 rounded-lg ml-auto">Tiếp theo</button>
+                    <button type="submit" id="submit-btn" class="btn-primary text-white font-bold py-2 px-6 rounded-lg ml-auto hidden">Gửi Đăng Ký</button>
                 </div>
             </form>
         </main>
     </div>
     
-    <!-- Success Modal -->
     <div id="success-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-white rounded-lg p-8 text-center shadow-xl max-w-sm w-full">
+        <div class="bg-white rounded-lg p-8 text-center shadow-xl">
+            <div class="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
+                <svg class="w-10 h-10 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+            </div>
             <h2 class="text-2xl font-bold mb-2">Gửi thành công!</h2>
-            <p class="text-gray-600">Cảm ơn bạn đã tin tưởng. Nắng đã nhận được thông tin và sẽ gửi xác nhận vào Messenger cho bạn ngay bây giờ!</p>
+            <p class="text-gray-600">Cảm ơn bạn đã tin tưởng. Mình sẽ liên hệ lại sớm thôi!</p>
+            <button id="close-modal-btn" class="mt-6 btn-primary text-white font-bold py-2 px-8 rounded-lg">OK</button>
         </div>
     </div>
-    
-    <!-- Loading Spinner -->
-    <div id="loading-overlay" class="fixed inset-0 bg-white bg-opacity-75 flex items-center justify-center hidden z-50">
-        <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-pink-500"></div>
-    </div>
+
 
     <script>
         const servicesData = [
-            { id: 'le_cuoi', name: 'Makeup Lễ Cưới & Lễ Ăn Hỏi', price: 2500000 },
-            { id: 'pre_wedding', name: 'Makeup Chụp Hình Pre-Wedding', price: 2000000 },
-            { id: 'tiec_toi', name: 'Makeup Tiệc Tối', price: 2300000 },
-            { id: 'co_dau_test', name: 'Makeup Cô Dâu Test', price: 2000000 },
-            { id: 'me_co_dau', name: 'Makeup mẹ cô dâu / chú rể', price: 1400000 },
-            { id: 'nguoi_nha', name: 'Makeup người nhà (Thêm)', price: 800000 },
-            { id: 'chu_re', name: 'Makeup chú rể (Thêm)', price: 500000 },
-            { id: 'ca_nhan', name: 'Makeup cá nhân & sự kiện', price: 1000000 },
-            { id: 'take_care', name: 'Take care Cô Dâu (1h)', price: 500000 },
+            { id: 'le_cuoi', name: 'Makeup Lễ Cưới & Lễ Ăn Hỏi', price: 2500000, type: 'checkbox' },
+            { id: 'pre_wedding', name: 'Makeup Chụp Hình Pre-Wedding', price: 2000000, type: 'checkbox' },
+            { id: 'tiec_toi', name: 'Makeup Tiệc Tối', price: 2300000, type: 'checkbox' },
+            { id: 'co_dau_test', name: 'Makeup Cô Dâu Test', price: 2000000, type: 'checkbox' },
+            { id: 'me_co_dau', name: 'Makeup mẹ cô dâu / chú rể', price: 1400000, type: 'quantity' },
+            { id: 'nguoi_nha', name: 'Makeup người nhà', price: 800000, type: 'quantity' },
+            { id: 'chu_re', name: 'Makeup chú rể', price: 500000, type: 'checkbox' },
+            { id: 'ca_nhan', name: 'Makeup cá nhân & sự kiện', price: 1000000, type: 'checkbox' },
+            { id: 'take_care', name: 'Take care Cô Dâu (theo giờ)', price: 500000, type: 'quantity', unit: 'giờ' },
         ];
 
-        function formatCurrency(number) {
-            return number.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' }).replace('₫', ' VND');
-        }
-        
-        // --- Initialize the form when the page loads ---
         document.addEventListener('DOMContentLoaded', function() {
-            const serviceListContainer = document.getElementById('service-list');
-            const totalPriceEl = document.getElementById('total-price');
+            let currentStep = 1;
+            const formSteps = document.querySelectorAll('.form-step');
+            const stepperItems = document.querySelectorAll('#stepper > div');
+            const prevBtn = document.getElementById('prev-btn');
+            const nextBtn = document.getElementById('next-btn');
+            const submitBtn = document.getElementById('submit-btn');
             const form = document.getElementById('booking-form');
-            const mainContent = document.getElementById('main-content');
-
-            // 1. Get PSID from URL and validate
-            const urlParams = new URLSearchParams(window.location.search);
-            const psid = urlParams.get('psid');
-            if (psid) {
-                document.getElementById('psid').value = psid;
-            } else {
-                // This is not a critical error, but an expected case when the form is opened directly.
-                // We will show a friendly message to the user and log a warning for the developer.
-                console.warn("PSID not found in URL. This is expected if you are opening the form directly for testing. The form will display an error message to the user.");
-                
-                // Replace form with an error message for the user
-                mainContent.innerHTML = `
-                    <div class="text-center p-8 bg-red-50 border border-red-200 rounded-lg">
-                        <h2 class="text-xl font-bold text-red-700">Lỗi: Không thể tải form</h2>
-                        <p class="text-red-600 mt-2">Để đảm bảo an toàn, bạn vui lòng mở link đặt lịch trực tiếp từ trong cuộc trò chuyện Messenger nhé.</p>
-                    </div>
-                `;
-                return; // Stop further execution
+            
+            const serviceListContainer = document.getElementById('service-list');
+            
+            function formatCurrency(number) {
+                return number.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' }).replace('₫', 'VND');
+            }
+            
+            function renderServices() {
+                serviceListContainer.innerHTML = '';
+                servicesData.forEach(service => {
+                    const card = document.createElement('div');
+                    card.className = 'service-card p-4 rounded-lg border-2 cursor-pointer';
+                    card.dataset.id = service.id;
+                    card.innerHTML = `
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <h3 class="font-semibold text-gray-800">${service.name}</h3>
+                                <p class="text-pink-600 font-bold">${formatCurrency(service.price)}</p>
+                            </div>
+                            <input type="checkbox" id="check_${service.id}" class="h-5 w-5 rounded border-gray-300 text-pink-600 focus:ring-pink-500 mt-1 pointer-events-none">
+                        </div>
+                        ${service.type === 'quantity' ? `
+                        <div class="quantity-controls mt-3 hidden items-center justify-end">
+                            <button type="button" class="quantity-btn w-8 h-8 rounded-full font-bold text-lg">-</button>
+                            <span class="mx-4 font-bold text-gray-800 w-4 text-center">1</span>
+                            <button type="button" class="quantity-btn w-8 h-8 rounded-full font-bold text-lg">+</button>
+                        </div>
+                        ` : ''}
+                    `;
+                    serviceListContainer.appendChild(card);
+                });
             }
 
-            // 2. Render services
-            servicesData.forEach(service => {
-                const label = document.createElement('label');
-                label.className = 'flex items-center p-3 border rounded-lg hover:bg-pink-50 cursor-pointer';
-                label.innerHTML = `
-                    <input type="checkbox" name="services" value="${service.name}" data-price="${service.price}" class="h-4 w-4 rounded border-gray-300 text-pink-600 focus:ring-pink-500">
-                    <span class="ml-3 text-gray-700">${service.name}</span>
-                    <span class="ml-auto font-semibold text-gray-600">${formatCurrency(service.price)}</span>
-                `;
-                serviceListContainer.appendChild(label);
-            });
-            
-            // 3. Add event listener to update total price
-            serviceListContainer.addEventListener('change', () => {
+            function updateTotalPrice() {
                 let total = 0;
-                const checkedServices = serviceListContainer.querySelectorAll('input[type="checkbox"]:checked');
-                checkedServices.forEach(checkbox => {
-                    total += parseFloat(checkbox.dataset.price);
+                const selectedCards = document.querySelectorAll('.service-card.selected');
+                selectedCards.forEach(card => {
+                    const serviceId = card.dataset.id;
+                    const service = servicesData.find(s => s.id === serviceId);
+                    if (service) {
+                        if (service.type === 'quantity') {
+                            const quantity = parseInt(card.querySelector('.quantity-controls span').textContent);
+                            total += service.price * quantity;
+                        } else {
+                            total += service.price;
+                        }
+                    }
                 });
-                totalPriceEl.textContent = formatCurrency(total);
+                document.getElementById('total-price').textContent = formatCurrency(total);
+            }
+
+            serviceListContainer.addEventListener('click', (e) => {
+                const card = e.target.closest('.service-card');
+                if (!card) return;
+
+                const serviceId = card.dataset.id;
+                const service = servicesData.find(s => s.id === serviceId);
+                const checkbox = card.querySelector('input[type="checkbox"]');
+                const quantityControls = card.querySelector('.quantity-controls');
+                
+                if (e.target.closest('.quantity-controls')) {
+                    const isPlus = e.target.textContent === '+';
+                    const isMinus = e.target.textContent === '-';
+                    const quantitySpan = card.querySelector('.quantity-controls span');
+                    let quantity = parseInt(quantitySpan.textContent);
+
+                    if (isPlus) quantity++;
+                    if (isMinus && quantity > 1) quantity--;
+                    
+                    quantitySpan.textContent = quantity;
+                } else {
+                    card.classList.toggle('selected');
+                    checkbox.checked = card.classList.contains('selected');
+                    if (quantityControls) {
+                        quantityControls.classList.toggle('hidden', !checkbox.checked);
+                        quantityControls.classList.toggle('flex', checkbox.checked);
+                    }
+                }
+                updateTotalPrice();
             });
 
-            // 4. Handle form submission
-            form.addEventListener('submit', async function(e) {
-                e.preventDefault();
+            function updateStepUI() {
+                formSteps.forEach((step, index) => {
+                    step.classList.toggle('hidden', index + 1 !== currentStep);
+                });
+                stepperItems.forEach((step, index) => {
+                    step.classList.toggle('step-active', index + 1 === currentStep);
+                    step.classList.toggle('step-inactive', index + 1 !== currentStep);
+                });
+                prevBtn.classList.toggle('hidden', currentStep === 1);
+                nextBtn.classList.toggle('hidden', currentStep === formSteps.length);
+                submitBtn.classList.toggle('hidden', currentStep !== formSteps.length);
+            }
 
-                // !!! ================================================================== !!!
-                // !!!                        CẤU HÌNH BẮT BUỘC                          !!!
-                // !!! ================================================================== !!!
-                // BẠN CẦN THAY THẾ URL DƯỚI ĐÂY BẰNG URL CÔNG KHAI CỦA BẠN (TỪ ngrok).
-                // URL này phải được cập nhật mỗi khi bạn khởi động lại ngrok.
-                // VÍ DỤ: const backendUrl = 'https://1a2b-3c4d-5e6f.ngrok-free.app/submit';
-                const backendUrl = 'https://YOUR-BACKEND-URL-HERE/submit';
+            function validateStep(step) {
+                const inputs = formSteps[step - 1].querySelectorAll('[required]');
+                let isValid = true;
+                inputs.forEach(input => {
+                    if ((input.type === 'checkbox' && !input.checked) || (input.type !== 'checkbox' && !input.value)) {
+                        isValid = false;
+                        input.classList.add('border-red-500');
+                    } else {
+                         input.classList.remove('border-red-500');
+                    }
+                });
+                 if (!isValid) alert('Vui lòng điền đầy đủ các thông tin bắt buộc (*).');
+                return isValid;
+            }
 
-                if (backendUrl === 'https://YOUR-BACKEND-URL-HERE/submit') {
-                    alert('Lỗi cấu hình: Vui lòng cập nhật "backendUrl" trong file form.html');
-                    return;
+            function generateSummary() {
+                const summaryContainer = document.getElementById('summary');
+                const formElements = form.elements;
+                const data = {
+                    'Họ và Tên': formElements.hoTen.value,
+                    'Số điện thoại': formElements.soDienThoai.value,
+                    'Social Media': formElements.socialMedia.value || 'Không có',
+                    'Email': formElements.email.value || 'Không có',
+                    'Ngày sự kiện': new Date(formElements.ngaySuKien.value).toLocaleDateString('vi-VN'),
+                    'Thời gian xong': formElements.thoiGianXong.value,
+                    'Địa chỉ': formElements.diaChi.value,
+                    'Dịch vụ đã chọn': [],
+                    'Tổng chi phí': document.getElementById('total-price').textContent,
+                    'Phong cách makeup': formElements.phongCach.value || 'Không yêu cầu',
+                    'Tình trạng da': form.querySelector('input[name="tinhTrangDa"]:checked')?.value || 'Chưa chọn',
+                    'Dị ứng': formElements.diUng.value || 'Không có',
+                    'Ghi chú thêm': formElements.ghiChu.value || 'Không có',
+                };
+                const selectedServices = document.querySelectorAll('.service-card.selected');
+                selectedServices.forEach(card => {
+                    const serviceId = card.dataset.id;
+                    const service = servicesData.find(s => s.id === serviceId);
+                    let serviceText = service.name;
+                    if(service.type === 'quantity') {
+                        const quantity = card.querySelector('.quantity-controls span').textContent;
+                        serviceText += ` - Số lượng: ${quantity}`;
+                    }
+                    data['Dịch vụ đã chọn'].push(serviceText);
+                });
+                summaryContainer.innerHTML = '';
+                for(const key in data) {
+                    const value = data[key];
+                    const item = document.createElement('div');
+                    item.className = 'flex justify-between items-start py-2 border-b border-gray-200';
+                    item.innerHTML = `<p class="text-sm font-medium text-gray-600">${key}:</p>`;
+                    if (Array.isArray(value) && value.length > 0) {
+                        const list = document.createElement('ul');
+                        list.className = 'text-sm text-gray-800 text-right list-none';
+                        value.forEach(v => {
+                            const li = document.createElement('li');
+                            li.textContent = v;
+                            list.appendChild(li);
+                        });
+                        item.appendChild(list);
+                    } else {
+                        item.innerHTML += `<p class="text-sm text-gray-800 text-right font-semibold">${value}</p>`;
+                    }
+                    summaryContainer.appendChild(item);
                 }
+            }
 
-                document.getElementById('loading-overlay').classList.remove('hidden');
+            nextBtn.addEventListener('click', () => {
+                if (validateStep(currentStep)) {
+                    if (currentStep < formSteps.length) {
+                        currentStep++;
+                        if(currentStep === formSteps.length) {
+                            generateSummary();
+                        }
+                        updateStepUI();
+                    }
+                }
+            });
+
+            prevBtn.addEventListener('click', () => {
+                if (currentStep > 1) {
+                    currentStep--;
+                    updateStepUI();
+                }
+            });
+
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                if (!validateStep(currentStep)) return;
+
+                // ---> BẮT ĐẦU PHẦN TÍCH HỢP API <---
+
+                // BƯỚC 1: THAY THẾ LINK API CỦA BẠN VÀO ĐÂY
+                // Link này bạn lấy từ Google Apps Script sau khi triển khai dưới dạng Web App.
+                const GOOGLE_SCRIPT_URL = 'DÁN_LINK_WEB_APP_CỦA_BẠN_VÀO_ĐÂY';
+
+                // BƯỚC 2: Chuẩn bị dữ liệu gửi đi
+                // Lấy dữ liệu từ các dịch vụ đã chọn
+                const selectedServices = [];
+                document.querySelectorAll('.service-card.selected').forEach(card => {
+                    const serviceId = card.dataset.id;
+                    const service = servicesData.find(s => s.id === serviceId);
+                    let serviceText = service.name;
+                    if(service.type === 'quantity') {
+                        const quantity = card.querySelector('.quantity-controls span').textContent;
+                        serviceText += ` - Số lượng: ${quantity}`;
+                    }
+                    selectedServices.push(serviceText);
+                });
+                document.getElementById('dichVuChon').value = selectedServices.join(', ');
+                document.getElementById('tongChiPhi').value = document.getElementById('total-price').textContent;
 
                 const formData = new FormData(form);
-                const data = {};
-                formData.forEach((value, key) => {
-                    if (key === 'services') {
-                        if (!data[key]) data[key] = [];
-                        data[key].push(value);
-                    } else {
-                        data[key] = value;
-                    }
-                });
+                
+                // Hiển thị trạng thái đang gửi
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Đang gửi...';
 
-                data.total_price = totalPriceEl.textContent;
-
-                try {
-                    const response = await fetch(backendUrl, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(data)
-                    });
-
-                    if (response.ok) {
+                // BƯỚC 3: Gửi dữ liệu bằng fetch
+                fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (response.ok || response.type === 'opaque') { // response.ok sẽ không đúng với redirect, nên thêm type opaque
+                        // Nếu thành công, hiển thị modal thông báo
                         document.getElementById('success-modal').classList.remove('hidden');
                     } else {
-                        const errorData = await response.json();
-                        alert(`Gửi thất bại: ${errorData.message || 'Vui lòng thử lại.'}`);
+                        // Nếu có lỗi từ server
+                        throw new Error('Network response was not ok.');
                     }
-                } catch (error) {
-                    console.error('Submission error:', error);
-                    alert('Đã có lỗi kết nối đến máy chủ. Vui lòng thử lại sau.');
-                } finally {
-                     document.getElementById('loading-overlay').classList.add('hidden');
-                }
-            });
-        });
+                })
+                .catch(error => {
+                    // Nếu có lỗi mạng hoặc lỗi khác
+                    console.error('Lỗi khi gửi form:', error);
+                    alert('Đã có lỗi xảy ra. Vui lòng thử lại sau.');
+                })
+                .finally(() => {
+                    // Luôn khôi phục lại trạng thái nút bấm sau khi gửi xong
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Gửi Đăng Ký';
+                });
 
-        // --- Google Places Autocomplete ---
-        function initAutocomplete() {
-            const addressInput = document.getElementById('address');
-            // FIX: Only initialize Autocomplete if the input element exists.
-            // This prevents the error when the form is replaced by the PSID error message.
-            if (addressInput) {
-                const options = {
-                    componentRestrictions: { country: "vn" }, // Restrict to Vietnam
-                    fields: ["formatted_address", "geometry"],
-                    types: ["address"],
-                };
-                const autocomplete = new google.maps.places.Autocomplete(addressInput, options);
-            }
-        }
+                // ---> KẾT THÚC PHẦN TÍCH HỢP API <---
+            });
+            
+            document.getElementById('close-modal-btn').addEventListener('click', () => {
+                 document.getElementById('success-modal').classList.add('hidden');
+                 form.reset();
+                 document.querySelectorAll('.service-card.selected').forEach(card => {
+                     card.classList.remove('selected');
+                     card.querySelector('input[type="checkbox"]').checked = false;
+                     if (card.querySelector('.quantity-controls')) {
+                         card.querySelector('.quantity-controls').classList.add('hidden');
+                         card.querySelector('.quantity-controls span').textContent = '1';
+                     }
+                 });
+                 updateTotalPrice();
+                 currentStep = 1;
+                 updateStepUI();
+            });
+
+            renderServices();
+            updateStepUI();
+        });
     </script>
-    <script async defer
-        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyACoQtcPU4bneKiPN3VdQ02WQ4B8tkkhww&libraries=places&callback=initAutocomplete">
-    </script>
-    <!-- 
-        !!! ================================================================== !!!
-        !!!                        CẤU HÌNH BẮT BUỘC                          !!!
-        !!! ================================================================== !!!
-        Thay thế 'YOUR_GOOGLE_MAPS_API_KEY' trong thẻ script ở trên bằng 
-        Google Maps API Key thật của bạn.
-    -->
 </body>
 </html>
-
-
