@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đặt Lịch Makeup</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Quicksand', sans-serif;
+            background-color: #FFF8F5;
+        }
+        .form-input:focus {
+            border-color: #E1A095;
+            box-shadow: 0 0 0 2px rgba(225, 160, 149, 0.2);
+            outline: none;
+        }
+        .btn-primary {
+            background-color: #D48C7F;
+            transition: background-color 0.3s ease;
+        }
+        .btn-primary:hover {
+            background-color: #C37B6F;
+        }
+        /* Style for Google Places Autocomplete dropdown */
+        .pac-container {
+            font-family: 'Quicksand', sans-serif;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            z-index: 1050; /* Ensure it appears above other elements */
+        }
+        .pac-item {
+            padding: 10px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .pac-item:hover {
+            background-color: #FFF8F5;
+        }
+        .pac-item-query {
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-2xl bg-white rounded-2xl shadow-xl p-6 md:p-10 mx-auto">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-800">Đặt Lịch Makeup</h1>
+            <p class="text-gray-500 mt-2">Vui lòng điền thông tin bên dưới để mình chuẩn bị thật chu đáo nhé.</p>
+        </header>
+
+        <main id="main-content">
+            <!-- The form will submit data via JavaScript, so the action/method attributes are not strictly needed -->
+            <form id="booking-form">
+                <!-- Hidden input to store user's Page-Scoped ID -->
+                <input type="hidden" id="psid" name="psid">
+
+                <div class="space-y-6">
+                    <div>
+                        <label for="name" class="block text-sm font-medium text-gray-600 mb-1">Tên của bạn là *</label>
+                        <input type="text" id="name" name="name" class="form-input w-full px-4 py-2 rounded-lg border" required>
+                    </div>
+                    <div>
+                        <label for="phone" class="block text-sm font-medium text-gray-600 mb-1">Số điện thoại (Zalo) *</label>
+                        <input type="tel" id="phone" name="phone" class="form-input w-full px-4 py-2 rounded-lg border" required>
+                    </div>
+                    <div>
+                        <label for="address" class="block text-sm font-medium text-gray-600 mb-1">Địa chỉ makeup *</label>
+                        <input type="text" id="address" name="address" class="form-input w-full px-4 py-2 rounded-lg border" placeholder="Bắt đầu nhập để được gợi ý..." required>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                         <div>
+                            <label for="event_date" class="block text-sm font-medium text-gray-600 mb-1">Ngày diễn ra sự kiện *</label>
+                            <input type="date" id="event_date" name="event_date" class="form-input w-full px-4 py-2 rounded-lg border" required>
+                        </div>
+                        <div>
+                            <label for="event_time" class="block text-sm font-medium text-gray-600 mb-1">Thời gian cần makeup xong *</label>
+                            <input type="time" id="event_time" name="event_time" class="form-input w-full px-4 py-2 rounded-lg border" required>
+                        </div>
+                    </div>
+                    <div>
+                         <label class="block text-sm font-medium text-gray-600 mb-2">Lựa chọn dịch vụ *</label>
+                         <div class="space-y-2" id="service-list">
+                             <!-- Services will be dynamically inserted here -->
+                         </div>
+                    </div>
+                    <div class="mt-4 bg-pink-50 p-4 rounded-lg flex items-center justify-between">
+                         <span class="text-md font-semibold text-gray-700">Tạm tính:</span>
+                         <span id="total-price" class="text-xl font-bold text-pink-600">0 VND</span>
+                    </div>
+                     <div>
+                        <label for="style" class="block text-sm font-medium text-gray-600 mb-1">Phong cách makeup bạn mong muốn?</label>
+                        <input type="text" id="style" name="style" class="form-input w-full px-4 py-2 rounded-lg border" placeholder="VD: Tự nhiên kiểu Hàn, sắc sảo kiểu Tây...">
+                     </div>
+                      <div>
+                         <p class="block text-sm font-medium text-gray-600 mb-2">Tình trạng da của bạn?</p>
+                         <div class="flex flex-wrap gap-x-4 gap-y-2">
+                            <label class="flex items-center space-x-2"><input type="radio" name="skin_type" value="Da khô"><span>Da khô</span></label>
+                            <label class="flex items-center space-x-2"><input type="radio" name="skin_type" value="Da dầu / Hỗn hợp"><span>Da dầu / Hỗn hợp</span></label>
+                            <label class="flex items-center space-x-2"><input type="radio" name="skin_type" value="Da thường"><span>Da thường</span></label>
+                            <label class="flex items-center space-x-2"><input type="radio" name="skin_type" value="Da nhạy cảm"><span>Da nhạy cảm</span></label>
+                         </div>
+                     </div>
+                     <div>
+                        <label for="notes" class="block text-sm font-medium text-gray-600 mb-1">Dặn dò thêm cho mình</label>
+                        <textarea id="notes" name="notes" rows="3" class="form-input w-full px-4 py-2 rounded-lg border"></textarea>
+                     </div>
+                </div>
+
+                <div class="mt-8">
+                    <button type="submit" id="submit-btn" class="w-full btn-primary text-white font-bold py-3 px-6 rounded-lg">
+                        Gửi Đăng Ký
+                    </button>
+                </div>
+            </form>
+        </main>
+    </div>
+    
+    <!-- Success Modal -->
+    <div id="success-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-lg p-8 text-center shadow-xl max-w-sm w-full">
+            <h2 class="text-2xl font-bold mb-2">Gửi thành công!</h2>
+            <p class="text-gray-600">Cảm ơn bạn đã tin tưởng. Nắng đã nhận được thông tin và sẽ gửi xác nhận vào Messenger cho bạn ngay bây giờ!</p>
+        </div>
+    </div>
+    
+    <!-- Loading Spinner -->
+    <div id="loading-overlay" class="fixed inset-0 bg-white bg-opacity-75 flex items-center justify-center hidden z-50">
+        <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-pink-500"></div>
+    </div>
+
+    <script>
+        const servicesData = [
+            { id: 'le_cuoi', name: 'Makeup Lễ Cưới & Lễ Ăn Hỏi', price: 2500000 },
+            { id: 'pre_wedding', name: 'Makeup Chụp Hình Pre-Wedding', price: 2000000 },
+            { id: 'tiec_toi', name: 'Makeup Tiệc Tối', price: 2300000 },
+            { id: 'co_dau_test', name: 'Makeup Cô Dâu Test', price: 2000000 },
+            { id: 'me_co_dau', name: 'Makeup mẹ cô dâu / chú rể', price: 1400000 },
+            { id: 'nguoi_nha', name: 'Makeup người nhà (Thêm)', price: 800000 },
+            { id: 'chu_re', name: 'Makeup chú rể (Thêm)', price: 500000 },
+            { id: 'ca_nhan', name: 'Makeup cá nhân & sự kiện', price: 1000000 },
+            { id: 'take_care', name: 'Take care Cô Dâu (1h)', price: 500000 },
+        ];
+
+        function formatCurrency(number) {
+            return number.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' }).replace('₫', ' VND');
+        }
+        
+        // --- Initialize the form when the page loads ---
+        document.addEventListener('DOMContentLoaded', function() {
+            const serviceListContainer = document.getElementById('service-list');
+            const totalPriceEl = document.getElementById('total-price');
+            const form = document.getElementById('booking-form');
+            const mainContent = document.getElementById('main-content');
+
+            // 1. Get PSID from URL and validate
+            const urlParams = new URLSearchParams(window.location.search);
+            const psid = urlParams.get('psid');
+            if (psid) {
+                document.getElementById('psid').value = psid;
+            } else {
+                // This is not a critical error, but an expected case when the form is opened directly.
+                // We will show a friendly message to the user and log a warning for the developer.
+                console.warn("PSID not found in URL. This is expected if you are opening the form directly for testing. The form will display an error message to the user.");
+                
+                // Replace form with an error message for the user
+                mainContent.innerHTML = `
+                    <div class="text-center p-8 bg-red-50 border border-red-200 rounded-lg">
+                        <h2 class="text-xl font-bold text-red-700">Lỗi: Không thể tải form</h2>
+                        <p class="text-red-600 mt-2">Để đảm bảo an toàn, bạn vui lòng mở link đặt lịch trực tiếp từ trong cuộc trò chuyện Messenger nhé.</p>
+                    </div>
+                `;
+                return; // Stop further execution
+            }
+
+            // 2. Render services
+            servicesData.forEach(service => {
+                const label = document.createElement('label');
+                label.className = 'flex items-center p-3 border rounded-lg hover:bg-pink-50 cursor-pointer';
+                label.innerHTML = `
+                    <input type="checkbox" name="services" value="${service.name}" data-price="${service.price}" class="h-4 w-4 rounded border-gray-300 text-pink-600 focus:ring-pink-500">
+                    <span class="ml-3 text-gray-700">${service.name}</span>
+                    <span class="ml-auto font-semibold text-gray-600">${formatCurrency(service.price)}</span>
+                `;
+                serviceListContainer.appendChild(label);
+            });
+            
+            // 3. Add event listener to update total price
+            serviceListContainer.addEventListener('change', () => {
+                let total = 0;
+                const checkedServices = serviceListContainer.querySelectorAll('input[type="checkbox"]:checked');
+                checkedServices.forEach(checkbox => {
+                    total += parseFloat(checkbox.dataset.price);
+                });
+                totalPriceEl.textContent = formatCurrency(total);
+            });
+
+            // 4. Handle form submission
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+
+                // !!! ================================================================== !!!
+                // !!!                        CẤU HÌNH BẮT BUỘC                          !!!
+                // !!! ================================================================== !!!
+                // BẠN CẦN THAY THẾ URL DƯỚI ĐÂY BẰNG URL CÔNG KHAI CỦA BẠN (TỪ ngrok).
+                // URL này phải được cập nhật mỗi khi bạn khởi động lại ngrok.
+                // VÍ DỤ: const backendUrl = 'https://1a2b-3c4d-5e6f.ngrok-free.app/submit';
+                const backendUrl = 'https://YOUR-BACKEND-URL-HERE/submit';
+
+                if (backendUrl === 'https://YOUR-BACKEND-URL-HERE/submit') {
+                    alert('Lỗi cấu hình: Vui lòng cập nhật "backendUrl" trong file form.html');
+                    return;
+                }
+
+                document.getElementById('loading-overlay').classList.remove('hidden');
+
+                const formData = new FormData(form);
+                const data = {};
+                formData.forEach((value, key) => {
+                    if (key === 'services') {
+                        if (!data[key]) data[key] = [];
+                        data[key].push(value);
+                    } else {
+                        data[key] = value;
+                    }
+                });
+
+                data.total_price = totalPriceEl.textContent;
+
+                try {
+                    const response = await fetch(backendUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(data)
+                    });
+
+                    if (response.ok) {
+                        document.getElementById('success-modal').classList.remove('hidden');
+                    } else {
+                        const errorData = await response.json();
+                        alert(`Gửi thất bại: ${errorData.message || 'Vui lòng thử lại.'}`);
+                    }
+                } catch (error) {
+                    console.error('Submission error:', error);
+                    alert('Đã có lỗi kết nối đến máy chủ. Vui lòng thử lại sau.');
+                } finally {
+                     document.getElementById('loading-overlay').classList.add('hidden');
+                }
+            });
+        });
+
+        // --- Google Places Autocomplete ---
+        function initAutocomplete() {
+            const addressInput = document.getElementById('address');
+            // FIX: Only initialize Autocomplete if the input element exists.
+            // This prevents the error when the form is replaced by the PSID error message.
+            if (addressInput) {
+                const options = {
+                    componentRestrictions: { country: "vn" }, // Restrict to Vietnam
+                    fields: ["formatted_address", "geometry"],
+                    types: ["address"],
+                };
+                const autocomplete = new google.maps.places.Autocomplete(addressInput, options);
+            }
+        }
+    </script>
+    <script async defer
+        src="https://maps.googleapis.com/maps/api/js?key=GOOGLE_MAPS_API_KEY&libraries=places&callback=initAutocomplete">
+    </script>
+    <!-- 
+        !!! ================================================================== !!!
+        !!!                        CẤU HÌNH BẮT BUỘC                          !!!
+        !!! ================================================================== !!!
+        Thay thế 'YOUR_GOOGLE_MAPS_API_KEY' trong thẻ script ở trên bằng 
+        Google Maps API Key thật của bạn.
+    -->
+</body>
+</html>
+
